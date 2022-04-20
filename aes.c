@@ -96,8 +96,8 @@ static const uint8_t rcon[11] = {
 static inline void _expand_key(uint8_t *round_key, const uint8_t *key)
 {
 	// The first round is the key itself
-	for (uint_fast8_t i = 0; i < AES_KEY_32BW; ++i) {
-		aux1 = i << 2; // * AES_COL_SIZE
+	for (uint_fast8_t i = 0; i < AES_KEY_32WORDS; ++i) {
+		aux1 = i << 2; // * AES_SIZE_COLUMN
 
 		round_key[aux1 + 0] = key[aux1 + 0];
 		round_key[aux1 + 1] = key[aux1 + 1];
@@ -106,15 +106,15 @@ static inline void _expand_key(uint8_t *round_key, const uint8_t *key)
 	}
 
 	// All subsequent rounds are derived from the previous round key
-	for (uint_fast8_t i = AES_KEY_32BW; i < AES_COL_SIZE * (AES_NUM_RNDS + 1); ++i) {
-		aux1 = (i - 1) << 2; // * AES_COL_SIZE
+	for (uint_fast8_t i = AES_KEY_32WORDS; i < AES_SIZE_COLUMN * (AES_KEY_ROUNDS + 1); ++i) {
+		aux1 = (i - 1) << 2; // * AES_SIZE_COLUMN
 
 		auxv[0] = round_key[aux1++];
 		auxv[1] = round_key[aux1++];
 		auxv[2] = round_key[aux1++];
 		auxv[3] = round_key[aux1];
 
-		if (i % AES_KEY_32BW == 0) {
+		if (i % AES_KEY_32WORDS == 0) {
 			// Shift row
 			aux1 = auxv[0];
 
@@ -127,12 +127,12 @@ static inline void _expand_key(uint8_t *round_key, const uint8_t *key)
 			auxv[1] = sbox[auxv[1]];
 			auxv[2] = sbox[auxv[2]];
 			auxv[3] = sbox[auxv[3]];
-			auxv[0] = sbox[auxv[0]] ^ rcon[i / AES_KEY_32BW];
+			auxv[0] = sbox[auxv[0]] ^ rcon[i / AES_KEY_32WORDS];
 		}
 
 #if defined(AES256)
 		else
-		if (i % AES_KEY_32BW == AES_COL_SIZE) {
+		if (i % AES_KEY_32WORDS == AES_SIZE_COLUMN) {
 			// Substitute bytes
 			auxv[0] = sbox[auxv[0]];
 			auxv[1] = sbox[auxv[1]];
@@ -141,8 +141,8 @@ static inline void _expand_key(uint8_t *round_key, const uint8_t *key)
 		}
 #endif
 
-		aux1 = i << 2; // * AES_COL_SIZE
-		aux2 = (i - AES_KEY_32BW) << 2; // * AES_COL_SIZE
+		aux1 = i << 2; // * AES_SIZE_COLUMN
+		aux2 = (i - AES_KEY_32WORDS) << 2; // * AES_SIZE_COLUMN
 
 		round_key[aux1++] = round_key[aux2++] ^ auxv[0];
 		round_key[aux1++] = round_key[aux2++] ^ auxv[1];
@@ -154,28 +154,28 @@ static inline void _expand_key(uint8_t *round_key, const uint8_t *key)
 static inline void _add_round_key
 (uint8_t round, state_t *state , const uint8_t *round_key)
 {
-	aux2 = round << 4; // * AES_COL_SIZE * 4;
+	aux2 = round << 4; // * AES_SIZE_COLUMN * 4;
 
 	(*state)[0][0] ^= round_key[aux2];
 	(*state)[0][1] ^= round_key[aux2 + 1];
 	(*state)[0][2] ^= round_key[aux2 + 2];
 	(*state)[0][3] ^= round_key[aux2 + 3];
 
-	aux1 = AES_COL_SIZE;
+	aux1 = AES_SIZE_COLUMN;
 
 	(*state)[1][0] ^= round_key[aux1 + aux2];
 	(*state)[1][1] ^= round_key[aux1 + aux2 + 1];
 	(*state)[1][2] ^= round_key[aux1 + aux2 + 2];
 	(*state)[1][3] ^= round_key[aux1 + aux2 + 3];
 
-	aux1 += AES_COL_SIZE;
+	aux1 += AES_SIZE_COLUMN;
 
 	(*state)[2][0] ^= round_key[aux1 + aux2];
 	(*state)[2][1] ^= round_key[aux1 + aux2 + 1];
 	(*state)[2][2] ^= round_key[aux1 + aux2 + 2];
 	(*state)[2][3] ^= round_key[aux1 + aux2 + 3];
 
-	aux1 += AES_COL_SIZE;
+	aux1 += AES_SIZE_COLUMN;
 
 	(*state)[3][0] ^= round_key[aux1 + aux2];
 	(*state)[3][1] ^= round_key[aux1 + aux2 + 1];
@@ -377,7 +377,7 @@ static inline void _rev_mix_columns(state_t *state)
 	                 MULTIPLY(aux3, 0x09) ^ MULTIPLY(aux4, 0x0e);
 }
 
-#if defined(AES_ECB_MODE)
+#if defined(AES_MODE_ECB)
 void aes_ecb_init(struct aes_ctx *ctx, const uint8_t *key)
 {
 	_expand_key(ctx->round_key, key);
@@ -385,10 +385,10 @@ void aes_ecb_init(struct aes_ctx *ctx, const uint8_t *key)
 
 void aes_ecb_encrypt(const struct aes_ctx *ctx, void *buffer, size_t len)
 {
-	for (size_t i = 0; i < len; i += AES_BLK_SIZE) {
+	for (size_t i = 0; i < len; i += AES_SIZE_BLOCK) {
 		_add_round_key(0, (state_t *)buffer, ctx->round_key);
 
-		for (uint_fast8_t round = 1; round < AES_NUM_RNDS; ++round) {
+		for (uint_fast8_t round = 1; round < AES_KEY_ROUNDS; ++round) {
 			_sub_bytes((state_t *)buffer);
 			_shift_rows((state_t *)buffer);
 			_mix_columns((state_t *)buffer);
@@ -397,18 +397,18 @@ void aes_ecb_encrypt(const struct aes_ctx *ctx, void *buffer, size_t len)
 
 		_sub_bytes((state_t *)buffer);
 		_shift_rows((state_t *)buffer);
-		_add_round_key(AES_NUM_RNDS, (state_t *)buffer, ctx->round_key);
+		_add_round_key(AES_KEY_ROUNDS, (state_t *)buffer, ctx->round_key);
 
-		buffer = (uint8_t *)buffer + AES_BLK_SIZE;
+		buffer = (uint8_t *)buffer + AES_SIZE_BLOCK;
 	}
 }
 
 void aes_ecb_decrypt(const struct aes_ctx *ctx, void *buffer, size_t len)
 {
-	for (size_t i = 0; i < len; i += AES_BLK_SIZE) {
-		_add_round_key(AES_NUM_RNDS, (state_t *)buffer, ctx->round_key);
+	for (size_t i = 0; i < len; i += AES_SIZE_BLOCK) {
+		_add_round_key(AES_KEY_ROUNDS, (state_t *)buffer, ctx->round_key);
 
-		for (uint_fast8_t round = AES_NUM_RNDS - 1; round; --round) {
+		for (uint_fast8_t round = AES_KEY_ROUNDS - 1; round; --round) {
 			_rev_shift_rows((state_t *)buffer);
 			_rev_sub_bytes((state_t *)buffer);
 			_add_round_key(round, (state_t *)buffer, ctx->round_key);
@@ -419,29 +419,29 @@ void aes_ecb_decrypt(const struct aes_ctx *ctx, void *buffer, size_t len)
 		_rev_sub_bytes((state_t *)buffer);
 		_add_round_key(0, (state_t *)buffer, ctx->round_key);
 
-		buffer = (uint8_t *)buffer + AES_BLK_SIZE;
+		buffer = (uint8_t *)buffer + AES_SIZE_BLOCK;
 	}
 }
 #endif
 
-#if defined(AES_CBC_MODE)
+#if defined(AES_MODE_CBC)
 void aes_cbc_init(struct aes_ctx *ctx, const uint8_t *key, const uint8_t *iv)
 {
 	_expand_key(ctx->round_key, key);
-	memcpy(ctx->iv, iv, AES_BLK_SIZE);
+	memcpy(ctx->iv, iv, AES_SIZE_BLOCK);
 }
 
 void aes_cbc_encrypt(struct aes_ctx *ctx, void *buffer, size_t len)
 {
 	uint8_t *iv = ctx->iv;
 
-	for (size_t i = 0; i < len; i += AES_BLK_SIZE) {
-		for (uint_fast8_t j = 0; j < AES_BLK_SIZE; ++j)
+	for (size_t i = 0; i < len; i += AES_SIZE_BLOCK) {
+		for (uint_fast8_t j = 0; j < AES_SIZE_BLOCK; ++j)
 			*((uint8_t *)buffer + j) ^= iv[j];
 
 		_add_round_key(0, (state_t *)buffer, ctx->round_key);
 
-		for (uint_fast8_t round = 1; round < AES_NUM_RNDS; ++round) {
+		for (uint_fast8_t round = 1; round < AES_KEY_ROUNDS; ++round) {
 			_sub_bytes((state_t *)buffer);
 			_shift_rows((state_t *)buffer);
 			_mix_columns((state_t *)buffer);
@@ -450,25 +450,25 @@ void aes_cbc_encrypt(struct aes_ctx *ctx, void *buffer, size_t len)
 
 		_sub_bytes((state_t *)buffer);
 		_shift_rows((state_t *)buffer);
-		_add_round_key(AES_NUM_RNDS, (state_t *)buffer, ctx->round_key);
+		_add_round_key(AES_KEY_ROUNDS, (state_t *)buffer, ctx->round_key);
 
 		iv = (uint8_t *)buffer;
-		buffer = (uint8_t *)buffer + AES_BLK_SIZE;
+		buffer = (uint8_t *)buffer + AES_SIZE_BLOCK;
 	}
 
-	memcpy(ctx->iv, iv, AES_BLK_SIZE);
+	memcpy(ctx->iv, iv, AES_SIZE_BLOCK);
 }
 
 void aes_cbc_decrypt(struct aes_ctx *ctx, void *buffer, size_t len)
 {
-	uint8_t next_iv[AES_BLK_SIZE];
+	uint8_t next_iv[AES_SIZE_BLOCK];
 
-	for (size_t i = 0; i < len; i += AES_BLK_SIZE) {
-		memcpy(next_iv, buffer, AES_BLK_SIZE);
+	for (size_t i = 0; i < len; i += AES_SIZE_BLOCK) {
+		memcpy(next_iv, buffer, AES_SIZE_BLOCK);
 
-		_add_round_key(AES_NUM_RNDS, (state_t *)buffer, ctx->round_key);
+		_add_round_key(AES_KEY_ROUNDS, (state_t *)buffer, ctx->round_key);
 
-		for (uint_fast8_t round = AES_NUM_RNDS - 1; round; --round) {
+		for (uint_fast8_t round = AES_KEY_ROUNDS - 1; round; --round) {
 			_rev_shift_rows((state_t *)buffer);
 			_rev_sub_bytes((state_t *)buffer);
 			_add_round_key(round, (state_t *)buffer, ctx->round_key);
@@ -479,11 +479,11 @@ void aes_cbc_decrypt(struct aes_ctx *ctx, void *buffer, size_t len)
 		_rev_sub_bytes((state_t *)buffer);
 		_add_round_key(0, (state_t *)buffer, ctx->round_key);
 
-		for (uint_fast8_t j = 0; j < AES_BLK_SIZE; ++j)
+		for (uint_fast8_t j = 0; j < AES_SIZE_BLOCK; ++j)
 			*((uint8_t *)buffer + j) ^= ctx->iv[j];
 
-		memcpy(ctx->iv, next_iv, AES_BLK_SIZE);
-		buffer = (uint8_t *)buffer + AES_BLK_SIZE;
+		memcpy(ctx->iv, next_iv, AES_SIZE_BLOCK);
+		buffer = (uint8_t *)buffer + AES_SIZE_BLOCK;
 	}
 }
 #endif

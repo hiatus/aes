@@ -6,7 +6,7 @@
 
 #include "aes.h"
 
-// A multiple of AES_BLK_SIZE
+// A multiple of AES_SIZE_BLOCK
 #define DATA_SIZE 8192
 
 static inline void memrand(void *dst, size_t n)
@@ -26,8 +26,8 @@ static inline void hex(void *src, size_t n, int end)
 		putchar(end);
 }
 
-static void test_ecb_mode(uint8_t *);
-static void test_cbc_mode(uint8_t *);
+static void test_mode_ecb(uint8_t *);
+static void test_mode_cbc(uint8_t *);
 
 int main(void)
 {
@@ -36,31 +36,31 @@ int main(void)
 	memrand(data, DATA_SIZE);
 
 	puts("+ Details");
-	printf("\t      Key size : %u bits\n", AES_KEY_SIZE * 8);
+	printf("\t      Key size : %u bits\n", AES_SIZE_KEY * 8);
 	printf("\tPlaintext size : %u bytes\n\n", DATA_SIZE);
 
 	puts("+ ECB mode");
-	test_ecb_mode(data);
+	test_mode_ecb(data);
 
 	putchar('\n');
 
 	puts("+ CBC mode");
-	test_cbc_mode(data);
+	test_mode_cbc(data);
 
 	return 0;
 }
 
-static void test_ecb_mode(uint8_t *data)
+static void test_mode_ecb(uint8_t *data)
 {
 	uint8_t tmp[DATA_SIZE];
-	uint8_t key[AES_KEY_SIZE];
+	uint8_t key[AES_SIZE_KEY];
 
 	struct aes_ctx ectx, dctx;
 
-	memrand(key, AES_KEY_SIZE);
+	memrand(key, AES_SIZE_KEY);
 
 	printf("\t       Key :");
-	hex(key, AES_KEY_SIZE, '\n');
+	hex(key, AES_SIZE_KEY, '\n');
 
 	aes_ecb_init(&ectx, key);
 	aes_ecb_init(&dctx, key);
@@ -68,39 +68,39 @@ static void test_ecb_mode(uint8_t *data)
 	memcpy(tmp, data, DATA_SIZE);
 
 	printf("\t Plaintext :");
-	hex(tmp, AES_BLK_SIZE, EOF); puts(" ..");
+	hex(tmp, AES_SIZE_BLOCK, EOF); puts(" ..");
 
 	aes_ecb_encrypt(&ectx, tmp, DATA_SIZE);
 
 	printf("\tCiphertext :");
-	hex(tmp, AES_BLK_SIZE, EOF); puts(" ..");
+	hex(tmp, AES_SIZE_BLOCK, EOF); puts(" ..");
 
 	aes_ecb_decrypt(&dctx, tmp, DATA_SIZE);
 
 	printf("\tDeciphered :");
-	hex(tmp, AES_BLK_SIZE, EOF); puts(" ..");
+	hex(tmp, AES_SIZE_BLOCK, EOF); puts(" ..");
 
 	if (memcmp(data, tmp, DATA_SIZE))
-		puts("\n\t[!] Decryption failed");
+		puts("\n\t! Decryption failed");
 }
 
-static void test_cbc_mode(uint8_t *data)
+static void test_mode_cbc(uint8_t *data)
 {
 	uint8_t tmp[DATA_SIZE];
 
-	uint8_t iv [AES_BLK_SIZE];
-	uint8_t key[AES_KEY_SIZE];
+	uint8_t iv [AES_SIZE_BLOCK];
+	uint8_t key[AES_SIZE_KEY];
 
 	struct aes_ctx ectx, dctx;
 
-	memrand(iv,  AES_BLK_SIZE);
-	memrand(key, AES_KEY_SIZE);
+	memrand(iv,  AES_SIZE_BLOCK);
+	memrand(key, AES_SIZE_KEY);
 
 	printf("\t        IV :");
-	hex(iv, AES_BLK_SIZE, '\n');
+	hex(iv, AES_SIZE_BLOCK, '\n');
 
 	printf("\t       Key :");
-	hex(key, AES_KEY_SIZE, '\n');
+	hex(key, AES_SIZE_KEY, '\n');
 
 	aes_cbc_init(&ectx, key, iv);
 	aes_cbc_init(&dctx, key, iv);
@@ -108,18 +108,18 @@ static void test_cbc_mode(uint8_t *data)
 	memcpy(tmp, data, DATA_SIZE);
 
 	printf("\t Plaintext :");
-	hex(tmp, AES_BLK_SIZE, EOF); puts(" ..");
+	hex(tmp, AES_SIZE_BLOCK, EOF); puts(" ..");
 
 	aes_cbc_encrypt(&ectx, tmp, DATA_SIZE);
 
 	printf("\tCiphertext :");
-	hex(tmp, AES_BLK_SIZE, EOF); puts(" ..");
+	hex(tmp, AES_SIZE_BLOCK, EOF); puts(" ..");
 
 	aes_cbc_decrypt(&dctx, tmp, DATA_SIZE);
 
 	printf("\tDeciphered :");
-	hex(tmp, AES_BLK_SIZE, EOF); puts(" ..");
+	hex(tmp, AES_SIZE_BLOCK, EOF); puts(" ..");
 
 	if (memcmp(data, tmp, DATA_SIZE))
-		puts("\n\t[!] Decryption failed");
+		puts("\n\t! Decryption failed");
 }

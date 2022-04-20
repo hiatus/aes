@@ -30,7 +30,7 @@ void aes_cbc_decrypt(struct aes_ctx *ctx, void *buffer, size_t len);
 #endif
 ```
 
-In order to keep the code small and portable, no padding is done. Therefore, in bytes, the size of `key` must equal `AES_KEY_SIZE`, the size of `iv` must equal `AES_BLK_SIZE` (16) and the size of `buffer` (`len`) must be a multiple of `AES_BLK_SIZE` (16).
+In order to keep the code small and portable, no padding is done. Therefore, in bytes, the size of `key` must equal `AES_SIZE_KEY`, the size of `iv` must equal `AES_SIZE_BLOCK` (16) and the size of `buffer` (`len`) must be a multiple of `AES_SIZE_BLOCK` (16).
 
 Testing
 -------
