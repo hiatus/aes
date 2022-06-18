@@ -55,7 +55,7 @@ static void test_mode_ecb(uint8_t *data)
 	uint8_t tmp[DATA_SIZE];
 	uint8_t key[AES_SIZE_KEY];
 
-	struct aes_ctx ectx, dctx;
+	struct AESContext ectx, dctx;
 
 	memrand(key, AES_SIZE_KEY);
 
@@ -91,7 +91,7 @@ static void test_mode_cbc(uint8_t *data)
 	uint8_t iv [AES_SIZE_BLOCK];
 	uint8_t key[AES_SIZE_KEY];
 
-	struct aes_ctx ectx, dctx;
+	struct AESContext ectx, dctx;
 
 	memrand(iv,  AES_SIZE_BLOCK);
 	memrand(key, AES_SIZE_KEY);

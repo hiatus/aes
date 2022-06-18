@@ -378,12 +378,12 @@ static inline void _rev_mix_columns(state_t *state)
 }
 
 #if defined(AES_MODE_ECB)
-void aes_ecb_init(struct aes_ctx *ctx, const uint8_t *key)
+void aes_ecb_init(struct AESContext *ctx, const uint8_t *key)
 {
 	_expand_key(ctx->round_key, key);
 }
 
-void aes_ecb_encrypt(const struct aes_ctx *ctx, void *buffer, size_t len)
+void aes_ecb_encrypt(const struct AESContext *ctx, void *buffer, size_t len)
 {
 	for (size_t i = 0; i < len; i += AES_SIZE_BLOCK) {
 		_add_round_key(0, (state_t *)buffer, ctx->round_key);
@@ -403,7 +403,7 @@ void aes_ecb_encrypt(const struct aes_ctx *ctx, void *buffer, size_t len)
 	}
 }
 
-void aes_ecb_decrypt(const struct aes_ctx *ctx, void *buffer, size_t len)
+void aes_ecb_decrypt(const struct AESContext *ctx, void *buffer, size_t len)
 {
 	for (size_t i = 0; i < len; i += AES_SIZE_BLOCK) {
 		_add_round_key(AES_KEY_ROUNDS, (state_t *)buffer, ctx->round_key);
@@ -425,13 +425,13 @@ void aes_ecb_decrypt(const struct aes_ctx *ctx, void *buffer, size_t len)
 #endif
 
 #if defined(AES_MODE_CBC)
-void aes_cbc_init(struct aes_ctx *ctx, const uint8_t *key, const uint8_t *iv)
+void aes_cbc_init(struct AESContext *ctx, const uint8_t *key, const uint8_t *iv)
 {
 	_expand_key(ctx->round_key, key);
 	memcpy(ctx->iv, iv, AES_SIZE_BLOCK);
 }
 
-void aes_cbc_encrypt(struct aes_ctx *ctx, void *buffer, size_t len)
+void aes_cbc_encrypt(struct AESContext *ctx, void *buffer, size_t len)
 {
 	uint8_t *iv = ctx->iv;
 
@@ -459,7 +459,7 @@ void aes_cbc_encrypt(struct aes_ctx *ctx, void *buffer, size_t len)
 	memcpy(ctx->iv, iv, AES_SIZE_BLOCK);
 }
 
-void aes_cbc_decrypt(struct aes_ctx *ctx, void *buffer, size_t len)
+void aes_cbc_decrypt(struct AESContext *ctx, void *buffer, size_t len)
 {
 	uint8_t next_iv[AES_SIZE_BLOCK];
 

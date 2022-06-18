@@ -36,22 +36,22 @@
 // Calculate AES padding length
 #define AES_SIZE_PADDING(len) (-(size_t)(len) & (AES_BLK_SIZE - 1))
 
-struct aes_ctx {
+struct AESContext {
 	uint8_t iv[AES_SIZE_BLOCK];
 	uint8_t round_key[AES_SIZE_KEY_EXPANDED];
 };
 
 #if defined(AES_MODE_ECB)
-void aes_ecb_init(struct aes_ctx *ctx, const uint8_t *key);
+void aes_ecb_init(struct AESContext *ctx, const uint8_t *key);
 
-void aes_ecb_encrypt(const struct aes_ctx *ctx, void *buffer, size_t len);
-void aes_ecb_decrypt(const struct aes_ctx *ctx, void *buffer, size_t len);
+void aes_ecb_encrypt(const struct AESContext *ctx, void *buffer, size_t len);
+void aes_ecb_decrypt(const struct AESContext *ctx, void *buffer, size_t len);
 #endif
 
 #if defined(AES_MODE_CBC)
-void aes_cbc_init(struct aes_ctx *ctx, const uint8_t *key, const uint8_t *iv);
+void aes_cbc_init(struct AESContext *ctx, const uint8_t *key, const uint8_t *iv);
 
-void aes_cbc_encrypt(struct aes_ctx *ctx, void *buffer, size_t len);
-void aes_cbc_decrypt(struct aes_ctx *ctx, void *buffer, size_t len);
+void aes_cbc_encrypt(struct AESContext *ctx, void *buffer, size_t len);
+void aes_cbc_decrypt(struct AESContext *ctx, void *buffer, size_t len);
 #endif
 #endif
