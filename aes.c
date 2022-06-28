@@ -383,7 +383,7 @@ void aes_ecb_init(struct AESContext *ctx, const uint8_t *key)
 	_expand_key(ctx->round_key, key);
 }
 
-void aes_ecb_encrypt(const struct AESContext *ctx, void *buffer, size_t len)
+void aes_ecb_encrypt(struct AESContext *ctx, void *buffer, size_t len)
 {
 	for (size_t i = 0; i < len; i += AES_SIZE_BLOCK) {
 		_add_round_key(0, (state_t *)buffer, ctx->round_key);
@@ -403,7 +403,7 @@ void aes_ecb_encrypt(const struct AESContext *ctx, void *buffer, size_t len)
 	}
 }
 
-void aes_ecb_decrypt(const struct AESContext *ctx, void *buffer, size_t len)
+void aes_ecb_decrypt(struct AESContext *ctx, void *buffer, size_t len)
 {
 	for (size_t i = 0; i < len; i += AES_SIZE_BLOCK) {
 		_add_round_key(AES_KEY_ROUNDS, (state_t *)buffer, ctx->round_key);

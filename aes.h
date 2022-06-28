@@ -44,8 +44,8 @@ struct AESContext {
 #if defined(AES_MODE_ECB)
 void aes_ecb_init(struct AESContext *ctx, const uint8_t *key);
 
-void aes_ecb_encrypt(const struct AESContext *ctx, void *buffer, size_t len);
-void aes_ecb_decrypt(const struct AESContext *ctx, void *buffer, size_t len);
+void aes_ecb_encrypt(struct AESContext *ctx, void *buffer, size_t len);
+void aes_ecb_decrypt(struct AESContext *ctx, void *buffer, size_t len);
 #endif
 
 #if defined(AES_MODE_CBC)
