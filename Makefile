@@ -1,7 +1,7 @@
 BINDIR := bin
 SRCDIR := src
 
-TARGET := aes-test
+TARGET := aes
 
 CFLAGS := -std=gnu99
 CWARNS := -Wall -Wextra
@@ -10,7 +10,7 @@ all: $(BINDIR)/$(TARGET)
 
 $(BINDIR)/$(TARGET): $(BINDIR) main.c aes.c aes.h
 	@echo [$(CC)] $@
-	@$(CC) -s $(CWARNS) $(CFLAGS) -o $@ main.c aes.c
+	@$(CC) -s $(CWARNS) $(CFLAGS) -Ofast -o $@ main.c aes.c
 
 $(BINDIR):
 	@mkdir $(BINDIR)

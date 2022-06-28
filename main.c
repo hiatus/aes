@@ -1,125 +1,200 @@
-#include <time.h>
 #include <stdio.h>
-#include <stdint.h>
-#include <stdlib.h>
+#include <unistd.h>
 #include <string.h>
+#include <stdint.h>
+#include <stdbool.h>
 
 #include "aes.h"
 
-// A multiple of AES_SIZE_BLOCK
-#define DATA_SIZE 8192
 
-static inline void memrand(void *dst, size_t n)
+#define SIZE_READ 32768
+
+#ifdef AES_MODE_ECB
+	#define MODE_ECB 0
+#endif
+#ifdef AES_MODE_CBC
+	#define MODE_CBC 1
+#endif
+
+
+static const char _banner[] =
+#if defined(AES128)
+"aes-128 [options] [file]\n"
+#elif defined(AES192)
+"aes-192 [options] [file]\n"
+#elif defined(AES256)
+"aes-256 [options] [file]\n"
+#endif
+"	-h         this\n"
+"	-d         decrypt instead of encrypting\n"
+"	-m [mode]  AES mode (cbc or ecb)\n"
+#if defined(AES128)
+"	-k [file]  read AES key from [file] (16 bytes in length)\n"
+#elif defined(AES192)
+"	-k [file]  read AES key from [file] (24 bytes in length)\n"
+#elif defined(AES256)
+"	-k [file]  read AES key from [file] (32 bytes in length)\n"
+#endif
+"	-i [file]  read AES initialization vector from [file] (16 bytes in length)\n";
+
+
+static int _get_mode(const char *mode);
+static int _read_bytes(uint8_t *buffer, const char *path, size_t len);
+
+int main(int argc, char **argv)
 {
-	srand((unsigned int)clock());
+	int opt;
+	int ret = 0;
+	int mode = -1;
 
-	for (size_t i = 0; i < n; ++i)
-		*((uint8_t *)dst + i) = rand();
-}
+	size_t len;
 
-static inline void hex(void *src, size_t n, int end)
-{
-	for (size_t i = 0; i < n; ++i)
-		printf(" %02x", *((uint8_t *)src + i));
+	bool decrypt = false;
 
-	if (end != EOF)
-		putchar(end);
-}
+	struct AESContext ctx;
 
-static void test_mode_ecb(uint8_t *);
-static void test_mode_cbc(uint8_t *);
+	FILE *in = stdin;
 
-int main(void)
-{
-	uint8_t data[DATA_SIZE];
-
-	memrand(data, DATA_SIZE);
-
-	puts("+ Details");
-	printf("\t      Key size : %u bits\n", AES_SIZE_KEY * 8);
-	printf("\tPlaintext size : %u bytes\n\n", DATA_SIZE);
-
-	puts("+ ECB mode");
-	test_mode_ecb(data);
-
-	putchar('\n');
-
-	puts("+ CBC mode");
-	test_mode_cbc(data);
-
-	return 0;
-}
-
-static void test_mode_ecb(uint8_t *data)
-{
-	uint8_t tmp[DATA_SIZE];
 	uint8_t key[AES_SIZE_KEY];
+	uint8_t iv[AES_SIZE_BLOCK];
+	uint8_t buffer[SIZE_READ];
 
-	struct AESContext ectx, dctx;
+	void (*aes_function)(struct AESContext *, void *, size_t);
 
-	memrand(key, AES_SIZE_KEY);
+	memset(key, 0x00, AES_SIZE_KEY);
+	memset(iv, 0x00, AES_SIZE_BLOCK);
 
-	printf("\t       Key :");
-	hex(key, AES_SIZE_KEY, '\n');
+	while ((opt = getopt(argc, argv, ":hdm:k:i:")) != -1) {
+		switch (opt) {
+			case 'h':
+				fputs(_banner, stderr);
+				return ret;
 
-	aes_ecb_init(&ectx, key);
-	aes_ecb_init(&dctx, key);
+			case 'd':
+				decrypt = true;
+				break;
 
-	memcpy(tmp, data, DATA_SIZE);
+			case 'm':
+				if ((mode = _get_mode(optarg)) < 0) {
+					fprintf(stderr, "[-] Unavailable AES mode '%s'\n", optarg);
+					return 1;
+				}
 
-	printf("\t Plaintext :");
-	hex(tmp, AES_SIZE_BLOCK, EOF); puts(" ..");
+				break;
 
-	aes_ecb_encrypt(&ectx, tmp, DATA_SIZE);
+			case 'k':
+				if (_read_bytes(key, optarg, AES_SIZE_KEY)) {
+					perror("[!] Failed to read key file");
+					return 1;
+				}
 
-	printf("\tCiphertext :");
-	hex(tmp, AES_SIZE_BLOCK, EOF); puts(" ..");
+				break;
 
-	aes_ecb_decrypt(&dctx, tmp, DATA_SIZE);
+			case 'i':
+				if (_read_bytes(iv, optarg, AES_SIZE_BLOCK)) {
+					perror("[!] Failed to read IV file");
+					return 1;
+				}
 
-	printf("\tDeciphered :");
-	hex(tmp, AES_SIZE_BLOCK, EOF); puts(" ..");
+				break;
+			
+			case ':':
+				fprintf(stderr, "[!] Option '%c' requires an argument\n", optopt);
+				return 1;
 
-	if (memcmp(data, tmp, DATA_SIZE))
-		puts("\n\t! Decryption failed");
+			case '?':
+				fprintf(stderr, "[!] Invalid option '%c'\n", optopt);
+				return 1;
+		}
+	}
+
+	if (mode < 0) {
+		fputs("[!] No AES mode specified\n", stderr);
+		return 1;
+	}
+
+	for (int i = 0; i < AES_SIZE_KEY && ! key[i]; ++i) {
+		if (i + 1 == AES_SIZE_KEY) {
+			fputs("[!] No AES key provided\n", stderr);
+			return 1;
+		}
+	}
+
+	#ifdef AES_MODE_CBC
+	if (mode == MODE_CBC) {
+		for (int i = 0; i < AES_SIZE_BLOCK && ! iv[i]; ++i) {
+			if (i + 1 == AES_SIZE_BLOCK) {
+				fputs("[!] No AES IV provided\n", stderr);
+				return 1;
+			}
+		}
+	}
+	#endif
+
+	if (optind < argc) {
+		if (! (in = fopen(argv[optind], "r"))) {
+			perror("[!] Failed to open input file");
+			return 1;
+		}
+	}
+
+	#ifdef AES_MODE_ECB
+	if (mode == MODE_ECB) {
+		aes_ecb_init(&ctx, key);
+		aes_function = (decrypt) ? aes_ecb_decrypt : aes_ecb_encrypt;
+	}
+	#endif
+
+	#ifdef AES_MODE_CBC
+	if (mode == MODE_CBC) {
+		aes_cbc_init(&ctx, key, iv);
+		aes_function = (decrypt) ? aes_cbc_decrypt : aes_cbc_encrypt;
+	}
+	#endif
+
+	while ((len = fread(buffer, 1, SIZE_READ, in)) > 0) {
+		aes_function(&ctx, buffer, len);
+
+		if (fwrite(buffer, 1, len, stdout) != len) {
+			perror("[!] Failed to write all blocks");
+
+			ret = 1;
+			break;
+		}
+	}
+
+	if (in && in != stdin)
+		fclose(in);
+
+	return ret;
 }
 
-static void test_mode_cbc(uint8_t *data)
+int _get_mode(const char *mode)
 {
-	uint8_t tmp[DATA_SIZE];
+	#ifdef AES_MODE_ECB
+	if (! strcmp(mode, "ecb"))
+		return MODE_ECB;
+	#endif
 
-	uint8_t iv [AES_SIZE_BLOCK];
-	uint8_t key[AES_SIZE_KEY];
+	#ifdef AES_MODE_CBC
+	if (! strcmp(mode, "cbc"))
+		return MODE_CBC;
+	#endif
 
-	struct AESContext ectx, dctx;
+	return -1;
+}
 
-	memrand(iv,  AES_SIZE_BLOCK);
-	memrand(key, AES_SIZE_KEY);
+int _read_bytes(uint8_t *buffer, const char *path, size_t len)
+{
+	int ret = 0;
+	FILE *fp;
 
-	printf("\t        IV :");
-	hex(iv, AES_SIZE_BLOCK, '\n');
+	if (! (fp = fopen(path, "r")))
+		return 1;
 
-	printf("\t       Key :");
-	hex(key, AES_SIZE_KEY, '\n');
+	if (fread(buffer, 1, len, fp) != len)
+		ret = 1;
 
-	aes_cbc_init(&ectx, key, iv);
-	aes_cbc_init(&dctx, key, iv);
-
-	memcpy(tmp, data, DATA_SIZE);
-
-	printf("\t Plaintext :");
-	hex(tmp, AES_SIZE_BLOCK, EOF); puts(" ..");
-
-	aes_cbc_encrypt(&ectx, tmp, DATA_SIZE);
-
-	printf("\tCiphertext :");
-	hex(tmp, AES_SIZE_BLOCK, EOF); puts(" ..");
-
-	aes_cbc_decrypt(&dctx, tmp, DATA_SIZE);
-
-	printf("\tDeciphered :");
-	hex(tmp, AES_SIZE_BLOCK, EOF); puts(" ..");
-
-	if (memcmp(data, tmp, DATA_SIZE))
-		puts("\n\t! Decryption failed");
+	fclose(fp);
+	return ret;
 }
