@@ -10,7 +10,7 @@ all: $(BINDIR)/$(TARGET)
 
 $(BINDIR)/$(TARGET): $(BINDIR) main.c aes.c aes.h
 	@echo [$(CC)] $@
-	@$(CC) -s $(CWARNS) $(CFLAGS) -Ofast -o $@ main.c aes.c
+	@$(CC) $(CWARNS) $(CFLAGS) -Ofast -o $@ main.c aes.c
 
 $(BINDIR):
 	@mkdir $(BINDIR)
