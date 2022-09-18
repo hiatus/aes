@@ -34,7 +34,7 @@
 #endif
 
 // Calculate AES padding length
-#define AES_SIZE_PADDING(len) (-(size_t)(len) & (AES_BLK_SIZE - 1))
+#define AES_SIZE_PADDING(len) (-(size_t)(len) & (AES_SIZE_BLOCK - 1))
 
 struct AESContext {
 	uint8_t iv[AES_SIZE_BLOCK];
