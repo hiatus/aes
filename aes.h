@@ -15,7 +15,7 @@
 #define AES_SIZE_BLOCK 16
 
 #if defined(AES128)
-	#define AES_KEY_ROUNDS 10             // Number of AES rounds
+	#define AES_KEY_ROUNDS 10         // Number of AES rounds
 	#define AES_KEY_32WORDS 4         // Number of 32 bit words
 	#define AES_SIZE_KEY 16           // Key size
 	#define AES_SIZE_KEY_EXPANDED 176 // Key size after expansion
