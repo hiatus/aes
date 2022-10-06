@@ -2,6 +2,7 @@ aes
 ===
 Portable and fast (enough) implementation of the Rijndael cipher in ECB and CBC modes.
 
+
 API
 ---
 The default `aes.h` header defines the key size as 128 bits and enables both ECB and CBC functions.
@@ -30,7 +31,10 @@ void aes_cbc_decrypt(struct AESContext *ctx, void *buffer, size_t len);
 #endif
 ```
 
-In order to keep the code small and portable, no padding is done. Therefore, in bytes, the size of `key` must equal `AES_SIZE_KEY`, the size of `iv` must equal `AES_SIZE_BLOCK` (16) and the size of `buffer` (`len`) must be a multiple of `AES_SIZE_BLOCK` (16).
+In order to keep the code small and portable, no padding is done. Therefore, in bytes, the size of
+`key` must equal `AES_SIZE_KEY`, the size of `iv` must equal `AES_SIZE_BLOCK` (16) and the size of
+`buffer` (`len`) must be a multiple of `AES_SIZE_BLOCK` (16).
+
 
 CLI
 ---
@@ -63,6 +67,7 @@ key derivation functions and does not generate the IV for CBC mode. Both key and
 be generated externally with the appropriate sizes and provided as file arguments. Input padding is
 also not implemented; that is expected to be done externally as well, so make sure the input length
 is divisible by `AES_SIZE_BLOCK`.
+
 
 References
 ---------
