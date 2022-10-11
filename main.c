@@ -19,21 +19,21 @@
 
 static const char _banner[] =
 #if defined(AES128)
-"aes-128 [options] [file]\n"
+"aes-128 [options]\n"
 #elif defined(AES192)
-"aes-192 [options] [file]\n"
+"aes-192 [options]\n"
 #elif defined(AES256)
-"aes-256 [options] [file]\n"
+"aes-256 [options]\n"
 #endif
 "	-h         this\n"
 "	-d         decrypt instead of encrypting\n"
 "	-m [mode]  AES mode (cbc or ecb)\n"
 #if defined(AES128)
-"	-k [file]  read AES key from [file] (16 bytes in length)\n"
+"	-k [file]  read AES key from [file] (16 bytes)\n"
 #elif defined(AES192)
-"	-k [file]  read AES key from [file] (24 bytes in length)\n"
+"	-k [file]  read AES key from [file] (24 bytes)\n"
 #elif defined(AES256)
-"	-k [file]  read AES key from [file] (32 bytes in length)\n"
+"	-k [file]  read AES key from [file] (32 bytes)\n"
 #endif
 "	-i [file]  read AES initialization vector from [file] (16 bytes in length)\n";
 
